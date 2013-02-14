@@ -40,12 +40,14 @@ MA 02110-1301, USA.
 #include "LoginScreen.h"
 #include "LoadingScreen.h"
 #include "SocketHandler.h"
+#include "BroadcastHandler.h"
 #include "DownloadHandler.h"
 #include "MAHeaders.h"
 
 // Forward declarations.
 class LoginScreen;
 class LoadingScreen;
+class BroadcastHandler;
 
 /**
  * The ReloadClient application class.
@@ -77,6 +79,7 @@ public:
 	void initializeVariables();
 	void initializeFiles();
 	void createScreens();
+	void setServerAddress(MAUtil::String address);
 	void createMessageHandlers();
 	void createNetworkHandlers();
 
@@ -281,6 +284,11 @@ private:
 	 * Object that handles socket connections.
 	 */
 	SocketHandler mSocketHandler;
+
+	/**
+	 * Object that handles Automatic Server Discovery.
+	 */
+	BroadcastHandler * mBroadcastHandler;
 
 	/**
 	 * Object that handles downloads.

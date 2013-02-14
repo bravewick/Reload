@@ -159,6 +159,7 @@ ReloadClient::ReloadClient()
 	// Initialize application.
 	// Order of calls are important as data needed by
 	// later calls are created in earlier calls.
+	mBroadcastHandler = new BroadcastHandler(this);
 
 	setScreenOrientation();
 	initializeWebView();
@@ -170,6 +171,7 @@ ReloadClient::ReloadClient()
 
 	// Show first screen.
 	mLoginScreen->showNotConnectedScreen();
+
 }
 
 ReloadClient::~ReloadClient()
@@ -294,8 +296,16 @@ void ReloadClient::createScreens()
 	mLoadingScreen = new LoadingScreen(this);
 	mLoadingScreen->initializeScreen(mOS);
 
+
+	mBroadcastHandler->findServer();
+
 	// Set the most recently used server IP address.
-	mLoginScreen->defaultAddress(mServerAddress.c_str());
+	//mLoginScreen->defaultAddress(mServerAddress.c_str());
+}
+
+void ReloadClient::setServerAddress(MAUtil::String address)
+{
+	this->mLoginScreen->defaultAddress(address.c_str());
 }
 
 void ReloadClient::createMessageHandlers()
