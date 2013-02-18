@@ -19,8 +19,7 @@ MA 02110-1301, USA.
 /**
  * @file BroadcastHandler.h
  *
- * Helpers for managing udp communication
- * with the the Reload server.
+ * Functionality for Automatic Server Discovery
  *
  * Author: Kostas Tsolakis
  */
@@ -31,9 +30,9 @@ MA 02110-1301, USA.
 #include <MAUtil/String.h>
 #include <MAUtil/Vector.h>
 #include <MAUtil/Connection.h>
-#include "ReloadClient.h"
+#include "LoginScreen.h"
 
-class ReloadClient;
+class LoginScreen;
 
 /**
  * Class that broadcasts message for server discovery
@@ -45,7 +44,7 @@ public:
 	/**
 	 * Constructor.
 	 */
-	BroadcastHandler(ReloadClient * client);
+	BroadcastHandler(LoginScreen *mLoginScreen);
 
 	/**
 	 * Destructor.
@@ -73,6 +72,8 @@ public:
 	 */
 	void connWriteFinished(MAUtil::Connection* conn, int result);
 
+	void closeConnection();
+
 private:
 	/**
 	 * Method that executes writeTo using UDP socket connection
@@ -99,9 +100,9 @@ private:
 
 	MAConnAddr mBroadcastAddress;
 
-	MAUtil::String serverAddress;
+	MAUtil::String mServerAddress;
 
-	ReloadClient *mClient;
+	LoginScreen *mLoginScreen;
 };
 
 #endif

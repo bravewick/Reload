@@ -19,8 +19,7 @@ MA 02110-1301, USA.
 /**
  * @file BroadcastHandler.cpp
  *
- * Helpers for managing socket communication
- * with the the Reload server.
+ * Functionality for Automatic Server Discovery
  *
  * Author: Kostas Tsolakis
  */
@@ -32,17 +31,17 @@ MA 02110-1301, USA.
 
 using namespace MAUtil;
 
-BroadcastHandler::BroadcastHandler(ReloadClient *client) :
+BroadcastHandler::BroadcastHandler(LoginScreen *loginScreen) :
 	mDatagramSocket(this)
 {
-	mClient = client;
+	mLoginScreen = loginScreen;
 
 	// Initiallize broadcastAddress
 	mBroadcastAddress.family = CONN_FAMILY_INET4;
-	mBroadcastAddress.inet4.addr = (192 << 24) | (168 << 16) | (0 << 8) | 255;
+	mBroadcastAddress.inet4.addr = (255 << 24) | (255 << 16) | (255 << 8) | 255;
 	mBroadcastAddress.inet4.port = 41234;
 
-	this->serverAddress = "";
+	this->mServerAddress = "";
 	sprintf(mBroadcastedData,"%s","CONREQ");
 }
 
@@ -57,6 +56,11 @@ void BroadcastHandler::findServer()
 	{
 		broadcast();
 	}
+}
+
+void BroadcastHandler::closeConnection()
+{
+	mDatagramSocket.close();
 }
 
 void BroadcastHandler::broadcast() {
@@ -93,9 +97,13 @@ void BroadcastHandler::connRecvFinished(Connection* conn, int result)
 	}
 	else
 	{
-		this->serverAddress = mBuffer;
+		for(int i = 0; i < result; i++)
+		{
+			mServerAddress[i] = mBuffer[i];
+		}
+		mServerAddress[result] = '\0';
 		lprintfln("SERVER RESPONSE:%s",mBuffer);
-		mClient->setServerAddress(serverAddress);
+		mLoginScreen->addServerListItem(mServerAddress);
 	}
 }
 

@@ -8,3 +8,4 @@
 #define BEEP_WAV 8
 #define INFO_TEXT 9
 #define CUSTOM_JS 10
+#define SEARCH_BG 11

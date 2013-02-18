@@ -26,16 +26,26 @@ MA 02110-1301, USA.
 #ifndef LOGINSCREEN_H_
 #define LOGINSCREEN_H_
 
+#include "NativeUI/Widgets.h"
+#include "MAUtil/vector.h"
 #include "ReloadClient.h"
 #include "LoginScreenWidget.h"
 #include "LoginScreenListener.h"
 
 class ReloadClient;
+class BroadcastHandler;
 
 using namespace MAUtil; // Class Moblet
 using namespace NativeUI; // WebView widget.
 
-class LoginScreen : public ButtonListener, EditBoxListener, LoginScreenListener
+struct Server
+{
+	ListViewItem *serverItem;
+	MAUtil::String ipAddress;
+};
+
+class LoginScreen :
+	public ButtonListener, EditBoxListener, LoginScreenListener, ListViewListener
 {
 	void rebuildScreenLayout(int screenWidth, int screenHeight, String os, int orientation);
 public:
@@ -43,6 +53,7 @@ public:
 
 	~LoginScreen();
 
+	bool LoginScreen::isServerListVisible();
 	/**
 	 * Creates the screen, the layouts, the widgets and positions everything.
 	 * @param os A string containing the current os.
@@ -148,6 +159,13 @@ public:
 	void buttonClicked(Widget *button);
 
 	/**
+	 * Called by the system when the user clicks a button
+	 * @param the ListView Element
+	 * @param the listViewItem Element that was selected
+	 */
+	void LoginScreen::listViewItemClicked(ListView *listView, ListViewItem *listViewItem);
+
+	/**
 	 * On iOS, it's called when the return button is clicked on
 	 * a virtual keyboard
 	 * @param editBox The editbox using the virtual keyboard
@@ -171,6 +189,19 @@ public:
 
 	void defaultAddress(const char *serverAddress);
 
+	void showServerList();
+
+	void hideServerList();
+
+	void clearServerList();
+
+	/**
+	 * Creates a new listViewItem and populates the server struct
+	 * node with data
+	 * @param serverIP
+	 */
+	void addServerListItem(MAUtil::String serverIP);
+
 	/**
 	 * This method is called the orientation changes
 	 * @param newOrientation The new screen orientation. One of the values: MA_SCREEN_ORIENTATION_PORTRAIT,
@@ -187,10 +218,16 @@ private:
 
 	EditBox *mServerIPBox;
 
+	ListView * mServerListView;
+
+	ListViewItem* mServerItem;
+
 	/**
 	 * The TextWidgets declared here are instantiated as either
 	 * Buttons or ImageButtons depending on the platform
 	 */
+	TextWidget *mServerSearchButton;
+
 	TextWidget *mServerConnectButton;
 
 	TextWidget *mServerDisconnectButton;
@@ -201,9 +238,13 @@ private:
 
 	RelativeLayout *mDisconnectLayout;
 
+	RelativeLayout *mServerListLayout;
+
 	Label *mConnectedToLabel;
 
 	Label *mServerIPLabel;
+
+	Label *mServerListLabel;
 
 	Label *mInstructionsLabel;
 
@@ -218,6 +259,10 @@ private:
 	ReloadClient *mReloadClient;
 
 	MAUtil::String mOS;
+
+	Vector<Server> mServersList;
+
+	BroadcastHandler *mBroadcastHandler;
 };
 
 

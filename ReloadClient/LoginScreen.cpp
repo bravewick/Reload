@@ -22,9 +22,10 @@ MA 02110-1301, USA.
  *  Created on: Feb 27, 2012
  *      Author: Iraklis Rossis
  */
-
+#include "BroadcastHandler.h"
 #include "LoginScreen.h"
 #include "LoginScreenUtils.h"
+#include "MAHeaders.h"
 
 using namespace MAUtil; // Class Moblet
 using namespace NativeUI; // WebView widget.
@@ -39,6 +40,10 @@ LoginScreen::~LoginScreen()
 	mLoginScreen->removeLoginScreenListener(this);
 }
 
+bool LoginScreen::isServerListVisible()
+{
+	return this->mServerListLayout->isVisible();
+}
 /**
  * Creates the screen, the layouts, the widgets and positions everything.
  * @param os A string containing the current os.
@@ -279,6 +284,20 @@ void LoginScreen::createConnectedLayout()
 	mServerIPBox = new EditBox();
 	mServerIPBox->addEditBoxListener(this);
 
+	mServerListLayout = new RelativeLayout();
+	mServerListLayout->setVisible(false);
+	mServerListLabel = new Label();
+	mServerListLabel->setText("Searching Servers...");
+	mServerListLabel->setFontColor(0xFFFFFF);
+	mServerListLabel->setTextHorizontalAlignment(MAW_ALIGNMENT_CENTER);
+	mServerListLabel->setTextVerticalAlignment(MAW_ALIGNMENT_CENTER);
+	mServerListLayout->addChild(mServerListLabel);
+	mServerListView = new ListView();
+	mServerListView->addListViewListener(this);
+	mServerListLayout->addChild(mServerListView);
+
+
+
 	//The connect to server button
 	if(mOS == "iPhone OS") //Android image buttons do not support text
 	{
@@ -292,6 +311,16 @@ void LoginScreen::createConnectedLayout()
 		mServerConnectButton = new Button();
 		((Button*)mServerConnectButton)->addButtonListener(this);
 	}
+
+	mServerSearchButton = new ImageButton();
+	((ImageButton*)mServerSearchButton)->addButtonListener(this);
+	((ImageButton*)mServerSearchButton)->setImage(SEARCH_BG);//->setBackgroundImage(SEARCH_BG);
+	mServerSearchButton->setFontColor(0x000000);
+
+	/*mServerSearchButton->setText("S");
+	mServerSearchButton->setTextHorizontalAlignment(MAW_ALIGNMENT_CENTER);
+	mServerSearchButton->setTextVerticalAlignment(MAW_ALIGNMENT_CENTER);*/
+
 	mServerConnectButton->setText("Connect");
 	mServerConnectButton->setTextHorizontalAlignment(MAW_ALIGNMENT_CENTER);
 	mServerConnectButton->setTextVerticalAlignment(MAW_ALIGNMENT_CENTER);
@@ -300,8 +329,10 @@ void LoginScreen::createConnectedLayout()
 	mConnectLayout->addChild(mServerIPLabel);
 	mConnectLayout->addChild(mServerIPBox);
 	mConnectLayout->addChild(mServerConnectButton);
+	mConnectLayout->addChild(mServerSearchButton);
 
 	mMainLayout->addChild(mConnectLayout);
+	mMainLayout->addChild(mServerListLayout);
 }
 
 /**
@@ -418,6 +449,7 @@ int LoginScreen::positionMenuLayout(int screenWidth, int screenHeight, int top, 
 {
 	int height = (int)((float)screenHeight * screenRatio);
 	// every widget will occupy 60% of the screen width
+
 	int widgetWidth = (int)((float)screenWidth * widgetWidthRatio);
 	// the left position will be 20% of the screen, as well as the right distance to the edge
 	int widgetLeft = (int)((float)screenWidth * widgetLeftRatio);
@@ -425,14 +457,31 @@ int LoginScreen::positionMenuLayout(int screenWidth, int screenHeight, int top, 
 	int labelHeight = (int)((float)height * labelHeightRatio);
 	int labelSpacing = (int)((float)height * labelSpacingRatio);
 	int editBoxHeight = (int)((float)height * editBoxHeightRatio);
+
+	int edidBoxWidth = ((int)((float)screenWidth * (0.8)) - editBoxHeight);
+
+	int searchButtonWidth = editBoxHeight;
+	int searchButtonHeight = editBoxHeight;
+
 	int buttonHeight = (int)((float)height * buttonHeightRatio);
 	int buttonSpacing = (int)((float)height * buttonSpacingRatio);
 
 	mServerIPLabel->setWidth(widgetWidth);
 	mServerIPLabel->setPosition(widgetLeft, labelSpacing);
 
-	mServerIPBox->setWidth(widgetWidth);
+	mServerIPBox->setWidth(edidBoxWidth);
 	mServerIPBox->setPosition(widgetLeft, labelSpacing + labelHeight);
+
+	// Position Server List
+	mServerListLayout->setPosition(0, top);
+	mServerListLayout->setWidth(widgetWidth);
+	mServerListView->setPosition(widgetLeft,labelHeight);
+	mServerListLabel->setLeftPosition(widgetLeft);
+	//searchButtonHeight = mServerIPBox->getHeight();
+
+	mServerSearchButton->setWidth(searchButtonWidth);
+	mServerSearchButton->setHeight(searchButtonWidth);
+	mServerSearchButton->setPosition(widgetLeft + edidBoxWidth, labelSpacing + labelHeight);
 
 	mServerConnectButton->setWidth(widgetWidth);
 	mServerConnectButton->setHeight(buttonHeight);
@@ -534,37 +583,114 @@ void LoginScreen::editBoxReturn(EditBox* editBox)
 	editBox->hideKeyboard();
 }
 
+void LoginScreen::showServerList()
+{
+	mConnectLayout->setVisible(false);
+	mLoadLastAppButton->setVisible(false);
+	mServerListLayout->setVisible(true);
+}
+
+void LoginScreen::hideServerList()
+{
+	mServerListLayout->setVisible(false);
+	mConnectLayout->setVisible(true);
+	mLoadLastAppButton->setVisible(true);
+
+	// Destroy the server list vector and broadcasting
+	for(MAUtil::Vector<Server>::iterator i = mServersList.begin(); i != mServersList.end(); i++)
+	{
+		this->mServerListView->removeChild(i->serverItem);
+		//mServersList.remove(i);
+	}
+	mServersList.clear();
+
+	this->mBroadcastHandler->closeConnection();
+	delete this->mBroadcastHandler;
+}
+
+void LoginScreen::addServerListItem(MAUtil::String serverIP)
+{
+	// Create a new listViewItem Widget
+	mServerItem = new ListViewItem();
+	mServerItem->setText(serverIP);
+	mServerListView->addChild(mServerItem);
+
+	// Create a server data struct
+	Server serverData;
+	serverData.ipAddress = serverIP;
+	serverData.serverItem = mServerItem;
+	mServersList.add(serverData);
+}
+
 /**
  * Called by the system when the user clicks a button
  * @param button The button that was clicked
  */
 void LoginScreen::buttonClicked(Widget *button)
 {
-	//Trim the beggining and end of the string of any spaces.
-	int firstCharPos = mServerIPBox->getText().findFirstNotOf(' ', 0);
-	int lastCharPos = mServerIPBox->getText().findFirstOf(' ', firstCharPos);
-	lastCharPos = (lastCharPos != String::npos)?lastCharPos - 1:mServerIPBox->getText().length() - 1;
-	String address = mServerIPBox->getText().substr(firstCharPos, lastCharPos - firstCharPos + 1);
 
-	if(button == mServerConnectButton)
+
+	if(button == mServerSearchButton)
 	{
-		mReloadClient->connectToServer(address.c_str());
-		mServerIPBox->hideKeyboard(); //Needed for iOS
+		showServerList();
+		this->mBroadcastHandler = new BroadcastHandler(this);
+		this->mBroadcastHandler->findServer();
+		//addServerListItem("192.168.0.145");
+		lprintfln("@@@@ MOSYNC: Search button pressed");
+		// Start searching for Available Reload servers
+		// and show them on a ListView Screen
+		//BroadcastHandler *mBroadcastHandler = new BroadscastHandler;
+		//mBroadcastHandler->findServer();
+
+		//Populating Server List
+
+		// Add items to the list view.
 	}
-	else if(button == mServerDisconnectButton)
-	{
-		mReloadClient->disconnectFromServer();
+	else {
+		//Trim the beggining and end of the string of any spaces.
+		int firstCharPos = mServerIPBox->getText().findFirstNotOf(' ', 0);
+		int lastCharPos = mServerIPBox->getText().findFirstOf(' ', firstCharPos);
+		lastCharPos = (lastCharPos != String::npos)?lastCharPos - 1:mServerIPBox->getText().length() - 1;
+		String address = mServerIPBox->getText().substr(firstCharPos, lastCharPos - firstCharPos + 1);
+
+		if(button == mServerConnectButton)
+		{
+			mReloadClient->connectToServer(address.c_str());
+			mServerIPBox->hideKeyboard(); //Needed for iOS
+		}
+		else if(button == mServerDisconnectButton)
+		{
+			mReloadClient->disconnectFromServer();
+		}
+		else if(button == mLoadLastAppButton)
+		{
+			//Just load whatever app we have already extracted
+			mReloadClient->launchSavedApp();
+		}
+		else if(button == mInfoIcon)
+		{
+			//Show the info screen
+			maMessageBox("Reload Client Info",mReloadClient->getInfo().c_str());
+		}
 	}
-	else if(button == mLoadLastAppButton)
-	{
-		//Just load whatever app we have already extracted
-		mReloadClient->launchSavedApp();
+
+}
+
+void LoginScreen::listViewItemClicked(ListView *listView, ListViewItem *listViewItem)
+{
+	lprintfln("@@@-->vector size = %d", mServersList.size());
+	for(MAUtil::Vector<Server>::iterator i = mServersList.begin(); i != mServersList.end(); i++) {
+		lprintfln("@@@-->i");
+		if(listViewItem == i->serverItem)
+		{
+			this->defaultAddress(i->ipAddress.c_str());
+		}
+		/*this->mServerListLayout->setVisible(false);
+		this->mConnectLayout->setVisible(true);
+		this->mLoadLastAppButton->setVisible(true);*/
 	}
-	else if(button == mInfoIcon)
-	{
-		//Show the info screen
-		maMessageBox("Reload Client Info",mReloadClient->getInfo().c_str());
-	}
+
+	hideServerList();
 }
 
 void LoginScreen::connectedTo(const char *serverAddress)

@@ -159,7 +159,7 @@ ReloadClient::ReloadClient()
 	// Initialize application.
 	// Order of calls are important as data needed by
 	// later calls are created in earlier calls.
-	mBroadcastHandler = new BroadcastHandler(this);
+	//mBroadcastHandler = new BroadcastHandler(this);
 
 	setScreenOrientation();
 	initializeWebView();
@@ -297,7 +297,7 @@ void ReloadClient::createScreens()
 	mLoadingScreen->initializeScreen(mOS);
 
 
-	mBroadcastHandler->findServer();
+	//mBroadcastHandler->findServer();
 
 	// Set the most recently used server IP address.
 	//mLoginScreen->defaultAddress(mServerAddress.c_str());
@@ -353,7 +353,14 @@ void ReloadClient::keyPressEvent(int keyCode, int nativeCode)
 	{
 		if (MAK_BACK == keyCode)
 		{
-			exit();
+			if(this->mLoginScreen->isServerListVisible())
+			{
+				this->mLoginScreen->hideServerList();
+			}
+			else
+			{
+				exit();
+			}
 		}
 	}
 }
