@@ -36,17 +36,27 @@ BroadcastHandler::BroadcastHandler(LoginScreen *loginScreen) :
 {
 	mLoginScreen = loginScreen;
 
-	// Initiallize broadcastAddress
+	// Initialize broadcastAddress
 	mBroadcastAddress.family = CONN_FAMILY_INET4;
 	mBroadcastAddress.inet4.addr = (255 << 24) | (255 << 16) | (255 << 8) | 255;
 	mBroadcastAddress.inet4.port = 41234;
 
+	// Initialize buffer, server address and other data
+	initializeBuffer();
 	this->mServerAddress = "";
 	sprintf(mBroadcastedData,"%s","CONREQ");
 }
 
 BroadcastHandler::~BroadcastHandler()
 { }
+
+void BroadcastHandler::initializeBuffer()
+{
+	for(int i = 0; i < BUFFER_SIZE; i++)
+	{
+		mBuffer[i] = NULL;
+	}
+}
 
 void BroadcastHandler::findServer()
 {
@@ -89,7 +99,6 @@ void BroadcastHandler::connectFinished(Connection* conn, int result)
 
 void BroadcastHandler::connRecvFinished(Connection* conn, int result)
 {
-
 	lprintfln("connRecvFinished: %i\n", result);
 	if(result < 0)
 	{
@@ -97,14 +106,13 @@ void BroadcastHandler::connRecvFinished(Connection* conn, int result)
 	}
 	else
 	{
-		for(int i = 0; i < result; i++)
-		{
-			mServerAddress[i] = mBuffer[i];
-		}
-		mServerAddress[result] = '\0';
+		mServerAddress = mBuffer;
 		lprintfln("SERVER RESPONSE:%s",mBuffer);
+
+		initializeBuffer();
 		mLoginScreen->addServerListItem(mServerAddress);
 	}
+	mDatagramSocket.recvFrom(mBuffer, sizeof(mBuffer), &mAddress);
 }
 
 void BroadcastHandler::connWriteFinished(Connection* conn, int result)

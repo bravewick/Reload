@@ -679,16 +679,22 @@ void LoginScreen::buttonClicked(Widget *button)
 void LoginScreen::listViewItemClicked(ListView *listView, ListViewItem *listViewItem)
 {
 	lprintfln("@@@-->vector size = %d", mServersList.size());
+
 	for(MAUtil::Vector<Server>::iterator i = mServersList.begin(); i != mServersList.end(); i++) {
 		lprintfln("@@@-->i");
 		if(listViewItem == i->serverItem)
 		{
 			this->defaultAddress(i->ipAddress.c_str());
+			int firstCharPos = mServerIPBox->getText().findFirstNotOf(' ', 0);
+			int lastCharPos = mServerIPBox->getText().findFirstOf(' ', firstCharPos);
+			lastCharPos = (lastCharPos != String::npos)?lastCharPos - 1:mServerIPBox->getText().length() - 1;
+			String address = mServerIPBox->getText().substr(firstCharPos, lastCharPos - firstCharPos + 1);
+			mReloadClient->connectToServer(address.c_str());
+			mServerIPBox->hideKeyboard(); //Needed for iOS
+			break;
 		}
-		/*this->mServerListLayout->setVisible(false);
-		this->mConnectLayout->setVisible(true);
-		this->mLoadLastAppButton->setVisible(true);*/
 	}
+
 
 	hideServerList();
 }

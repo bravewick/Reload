@@ -27,6 +27,8 @@ MA 02110-1301, USA.
 #ifndef BROADCAST_HANDLER_H
 #define BROADCAST_HANDLER_H
 
+#define BUFFER_SIZE		512
+
 #include <MAUtil/String.h>
 #include <MAUtil/Vector.h>
 #include <MAUtil/Connection.h>
@@ -80,6 +82,8 @@ private:
 	 */
 	void BroadcastHandler::broadcast();
 
+	void BroadcastHandler::initializeBuffer();
+
 	/**
 	 * The UDP socket used for registering with the server
 	 * and listening for commands from the server.
@@ -91,7 +95,7 @@ private:
 	 */
 	char mBroadcastedData[6];
 
-	char mBuffer[512];
+	char mBuffer[BUFFER_SIZE];
 
 	/**
 	 * The sender's address
